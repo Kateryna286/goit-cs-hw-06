@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+
+# VSCode settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Docker
+*.log
+docker-compose.override.yml
+.tmp/
+.cache/
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
