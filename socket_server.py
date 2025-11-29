@@ -2,14 +2,15 @@ import socket
 import urllib.parse
 from datetime import datetime
 from pymongo import MongoClient
+import os
 
 
 HOST = "127.0.0.1"
 PORT = 5000
 
-MONGO_URI = "mongodb://localhost:27017"
-DB_NAME = "messages_db"
-COLLECTION_NAME = "messages"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+DB_NAME = os.getenv("MONGO_DB_NAME", "messages_db")
+COLLECTION_NAME = os.getenv("MONGO_COLLECTION_NAME", "messages")
 
 
 def run_socket_server():

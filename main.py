@@ -97,7 +97,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 def start_http_server():
     """Запуск HTTP-сервера (в окремому процесі)."""
-    server_address = ("", 3001)  # локально 3001; у Docker можна буде змінити на 3000
+    server_address = ("", 3000) 
     httpd = HTTPServer(server_address, HttpHandler)
     print("HTTP server is running on http://localhost:3001")
     try:

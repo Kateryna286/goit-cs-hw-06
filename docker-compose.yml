@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: cs_hw06_app
+    ports:
+      - "3002:3000"  
+      - "5001:5000"  # сокет-сервер
+    environment:
+      # усередині контейнера Mongo буде доступна як "mongo:27017"
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB_NAME=messages_db
+      - MONGO_COLLECTION_NAME=messages
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6
+    container_name: cs_hw06_mongo
+    restart: always
+    ports:
+      - "27017:27017"   # щоб за бажанням можна було підключитись з хоста
+    volumes:
+      - mongo_data:/data/db   # дані зберігаються поза контейнером
+
+volumes:
+  mongo_data:
