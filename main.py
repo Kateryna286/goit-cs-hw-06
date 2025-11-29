@@ -1,6 +1,9 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import mimetypes
 import pathlib
+import urllib.parse 
+import socket
+
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -21,6 +24,45 @@ class HttpHandler(BaseHTTPRequestHandler):
         else:
             # усе інше — помилка 404
             self.send_html("error.html", status_code=404)
+
+    def do_POST(self):
+        """
+        Обробка відправки форми з message.html.
+        Читаємо тіло запиту, парсимо для логів
+        і відправляємо байти на socket-сервер (порт 5000).
+        """
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+
+        # Декодуємо в строку
+        data_str = body.decode()
+        # Розкодовуємо URL-кодування
+        data_parsed = urllib.parse.unquote_plus(data_str)
+
+        # Перетворюємо в словник для власних логів
+        data_dict = {
+            key: value
+            for key, value in (pair.split("=", 1) for pair in data_parsed.split("&"))
+        }
+
+        print("=== Received form data (HTTP) ===")
+        print("raw:", body)
+        print("parsed string:", data_parsed)
+        print("dict:", data_dict)
+
+        # socket-сервер
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect(("127.0.0.1", 5000))
+                sock.sendall(body)  
+                print("Data sent to socket server")
+        except ConnectionRefusedError:
+            print("Socket server is not available on 127.0.0.1:5000")
+
+        # Після обробки редірект на головну
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
 
     def send_html(self, filename: str, status_code: int = 200):
         try:
