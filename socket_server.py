@@ -1,13 +1,28 @@
 import socket
 import urllib.parse
 from datetime import datetime
+from pymongo import MongoClient
 
 
 HOST = "127.0.0.1"
 PORT = 5000
 
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "messages_db"
+COLLECTION_NAME = "messages"
+
 
 def run_socket_server():
+    # Підключення до MongoDB
+    try:
+        mongo_client = MongoClient(MONGO_URI)
+        db = mongo_client[DB_NAME]
+        collection = db[COLLECTION_NAME]
+        print(f"Connected to MongoDB at {MONGO_URI}, db='{DB_NAME}', collection='{COLLECTION_NAME}'")
+    except Exception as e:
+        print("Error connecting to MongoDB:", e)
+        collection = None
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
@@ -45,6 +60,16 @@ def run_socket_server():
 
                 print("=== Parsed message (socket server) ===")
                 print(doc)
+
+                # 5) Зберігаємо в MongoDB
+                if collection is not None:
+                    try:
+                        result = collection.insert_one(doc)
+                        print(f"Inserted into MongoDB with _id={result.inserted_id}")
+                    except Exception as e:
+                        print("Error inserting document into MongoDB:", e)
+                else:
+                    print("MongoDB collection is not available, skipping save")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import mimetypes
 import pathlib
-import urllib.parse 
+import urllib.parse
 import socket
-
+from multiprocessing import Process
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -12,7 +12,6 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         # 1) Статика (css, картинки)
         if path == "/style.css" or path == "/logo.png":
-            # прибираємо початковий слеш, щоб отримати ім'я файлу
             self.send_static(path.lstrip("/"))
             return
 
@@ -36,7 +35,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         # Декодуємо в строку
         data_str = body.decode()
-        # Розкодовуємо URL-кодування
+        # Розкодовуємо URL-encoding
         data_parsed = urllib.parse.unquote_plus(data_str)
 
         # Перетворюємо в словник для власних логів
@@ -50,16 +49,16 @@ class HttpHandler(BaseHTTPRequestHandler):
         print("parsed string:", data_parsed)
         print("dict:", data_dict)
 
-        # socket-сервер
+        # 🔗 Відправляємо байти тіла на socket-сервер
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.connect(("127.0.0.1", 5000))
-                sock.sendall(body)  
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock_conn:
+                sock_conn.connect(("127.0.0.1", 5000))
+                sock_conn.sendall(body)
                 print("Data sent to socket server")
         except ConnectionRefusedError:
             print("Socket server is not available on 127.0.0.1:5000")
 
-        # Після обробки редірект на головну
+        # Після обробки — редірект на головну
         self.send_response(302)
         self.send_header("Location", "/")
         self.end_headers()
@@ -81,11 +80,9 @@ class HttpHandler(BaseHTTPRequestHandler):
         """Відправка css / png та інших статичних файлів."""
         file_path = pathlib.Path(filename)
         if not file_path.exists():
-            # якщо раптом немає, то 404
             self.send_html("error.html", status_code=404)
             return
 
-        # Визначаємо MIME-тип (text/css, image/png, тощо)
         mime_type, _ = mimetypes.guess_type(str(file_path))
         if not mime_type:
             mime_type = "application/octet-stream"
@@ -98,16 +95,45 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.wfile.write(f.read())
 
 
-def run():
-    server_address = ("", 3001)  # temporary 3001
+def start_http_server():
+    """Запуск HTTP-сервера (в окремому процесі)."""
+    server_address = ("", 3001)  # локально 3001; у Docker можна буде змінити на 3000
     httpd = HTTPServer(server_address, HttpHandler)
     print("HTTP server is running on http://localhost:3001")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nServer stopped by user")
+        print("HTTP server stopped")
+    finally:
         httpd.server_close()
 
 
+def start_socket_server():
+    """Запуск socket-сервера (інший процес)."""
+    from socket_server import run_socket_server
+    run_socket_server()
+
+
+def main():
+    http_process = Process(target=start_http_server)
+    socket_process = Process(target=start_socket_server)
+
+    http_process.start()
+    socket_process.start()
+
+    print("Both HTTP and socket servers started in separate processes.")
+
+    try:
+        http_process.join()
+        socket_process.join()
+    except KeyboardInterrupt:
+        print("\nStopping servers...")
+        http_process.terminate()
+        socket_process.terminate()
+        http_process.join()
+        socket_process.join()
+        print("Servers stopped.")
+
+
 if __name__ == "__main__":
-    run()
+    main()
