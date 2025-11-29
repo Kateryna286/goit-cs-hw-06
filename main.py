@@ -25,11 +25,8 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_html("error.html", status_code=404)
 
     def do_POST(self):
-        """
-        Обробка відправки форми з message.html.
-        Читаємо тіло запиту, парсимо для логів
-        і відправляємо байти на socket-сервер (порт 5000).
-        """
+        """Обробка POST-запитів з форм."""
+    
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
 
@@ -38,7 +35,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         # Розкодовуємо URL-encoding
         data_parsed = urllib.parse.unquote_plus(data_str)
 
-        # Перетворюємо в словник для власних логів
+        # Перетворюємо у словник
         data_dict = {
             key: value
             for key, value in (pair.split("=", 1) for pair in data_parsed.split("&"))
@@ -49,7 +46,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         print("parsed string:", data_parsed)
         print("dict:", data_dict)
 
-        # 🔗 Відправляємо байти тіла на socket-сервер
+        # Відправляємо дані на socket-сервер
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock_conn:
                 sock_conn.connect(("127.0.0.1", 5000))
